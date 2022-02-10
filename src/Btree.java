@@ -36,7 +36,8 @@ final class Btree {
    */
   public Btree() {
     nodeSize = NODESIZE;
-    root = initNode();
+    root = createNode();
+    nodes[root].isLeaf = false;
     nodes[root].children[0] = createLeaf();
     mid = ((nodeSize + 1) % 2 == 0)? (nodeSize + 1)/2 - 1:  Math.floorDiv(nodeSize + 1, 2);
   }
@@ -44,7 +45,8 @@ final class Btree {
   //overloaded constructor
   public Btree(int nodeSize) {
     this.nodeSize = nodeSize;
-    root = initNode();
+    root = createNode();
+    nodes[root].isLeaf = false;
     nodes[root].children[0] = createLeaf();
     mid = ((nodeSize + 1) % 2 == 0)? (nodeSize + 1)/2 - 1:  Math.floorDiv(nodeSize + 1, 2);
   }
@@ -101,7 +103,7 @@ final class Btree {
    */
   private int nodeInsert(int value, int pointer) {
     Node curr = nodes[pointer];
-    if (isLeaf(curr)) {
+    if (curr.isLeaf) {
       if (Arrays.asList(curr.values).contains(value)) {
         return -2;
       }
@@ -141,7 +143,7 @@ final class Btree {
       //no space
       else {
         //create a new node
-        int newNodePtr = initNode(); //TODO or leaf?
+        int newNodePtr = createNode(); //TODO or leaf?
         //distribute values and child pointerS in the current and new node
         //redistribute();
         if (curr != nodes[root]){
@@ -202,36 +204,17 @@ final class Btree {
 
   /*********** Functions for accessing node  ******************/
 
-  /*
-   * isLeaf(Node node)
-   *    - True if the specified node is a leaf node.
-   *         (Leaf node -> a missing children)
-   */
-  boolean isLeaf(Node node) {
-    return node.children == null;
+  private int createLeaf(){
+    int nodePtr = createNode();
+    nodes[nodePtr].isLeaf = true;
+    return nodePtr;
   }
 
-  /*
-   * initNode(): Initialize a new node and returns the pointer.
-   *    - return node pointer
-   */
-  int initNode() {
+  private int createNode(){
     Node node = new Node();
     node.values = new int[nodeSize];
-    node.children =  new int[nodeSize + 1];
-
-    checkSize();
-    nodes[cntNodes] = node;
-    return cntNodes++;
-  }
-
-  /*
-   * createLeaf(): Creates a new leaf node and returns the pointer.
-   *    - return node pointer
-   */
-  int createLeaf() {
-    Node node = new Node();
-    node.values = new int[nodeSize];
+    node.children = new int[nodeSize + 1];
+    node.size = 0;
 
     checkSize();
     nodes[cntNodes] = node;

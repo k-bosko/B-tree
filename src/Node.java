@@ -16,4 +16,8 @@ final class Node {
    * (Rule in B Trees:  d <= size <= 2 * d).
    */
   int size;
+
+  //flag for a node if it is a leaf
+  boolean isLeaf;
+
 }
