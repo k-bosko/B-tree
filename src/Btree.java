@@ -9,6 +9,19 @@
  *   2. Lookup
  *   3. Display
  *
+ * The implementation supports both odd and even number of node size,
+ * i.e. maximum number of values that are allowed per node.
+ *
+ * The implementation relies on left biasing after split.
+ * This means that during redistribution between the current node and new node
+ *  all values before mid (including middle value) go to current node,
+ *  while all values after mid go to the new node.
+ * The current node's size, however, doesn't count middle value --> middle value is 'invisible'
+ * and resides at position curr.size.
+ * As a result, the middle value after split is in the left node (i.e. current node) as its last value,
+   which allows to easily promote the 'invisible' middle value into parent node at later stage.
+   Such an implementation is more efficient because with right biasing
+   one would need to implement more steps -> pop the middle value from the new node when it's full.
  */
 
 import java.util.Arrays;
@@ -193,7 +206,7 @@ final class Btree {
       else if (curr.size < nodeSize) {
         //mid invisible at index equal to size, i.e. next value after 'visible' values
         int mid = child.size;
-        //promote mid value via left bias -> copy over child's last value (i.e. mid) into current node //TODO add to readme
+        //promote mid value via left bias -> copy over child's last value (i.e. mid) into current node
         curr.values[curr.size] = child.values[mid];
         curr.size++;
         //link current node with new child
@@ -305,24 +318,28 @@ final class Btree {
    *
    */
   private void redistribute(Node curr, int value, Node newNode){
-
+    //copy over all values in the current node to temporary array
     int[] arr = new int[nodeSize + 1];
     for (int i = 0; i < nodeSize; i++){
       arr[i] = curr.values[i];
     }
+    //add value to be inserted into temporary array
     arr[nodeSize] = value;
+    //sort the array
     arr = Arrays.stream(arr).sorted().toArray();
-    //redistribute into current node -> including mid
+
+    //redistribute into current node -> all values up to and including mid value
     int newSize = 0;
     for (int i = 0; i < mid + 1; i++){
       curr.values[i] = arr[i];
       newSize++;
     }
-    // don't overwrite no longer needed values, instead control with size //TODO add to readme
-    // -1 so not to count mid
+    // don't overwrite no longer needed values, instead control with size
+    // -1 so not to count mid (to make it 'invisible')
     curr.size = newSize - 1;
+
     int j = 0;
-    //redistribute into new node
+    //redistribute into new node -> all values after mid
     for (int i = mid + 1; i < arr.length; i++){
       newNode.values[j] = arr[i];
       newNode.size++;
@@ -332,12 +349,22 @@ final class Btree {
 
   /*********** Functions for accessing node  ******************/
 
+  /**
+   * createLeaf(): Creates a new leaf node
+   * @return node pointer to new leaf
+   */
   private int createLeaf(){
     int nodePtr = createNode();
     nodes[nodePtr].isLeaf = true;
     return nodePtr;
   }
 
+  /**
+   * createNode(): Creates a new node
+   * values are stored in array of size nodeSize
+   * pointers to children nodes are stored in array of size 1 larger than nodeSize
+   * @return total number of nodes in a btree
+   */
   private int createNode(){
     Node node = new Node();
     node.values = new int[nodeSize];
