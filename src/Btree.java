@@ -95,6 +95,26 @@ final class Btree {
     return false; //TODO
   }
 
+  public void displayTree(){
+    display(root, 0);
+  }
+
+  public void display(int nodePtr, int level){
+    Node node = nodes[nodePtr];
+    System.out.print("  ".repeat(level));
+    for (int i = 0; i < node.size; i++) {
+      System.out.print(node.values[i] + " ");
+    }
+    System.out.println();
+    if (!node.isLeaf){
+      level++;
+      int numChildren = node.size + 1;
+      for (int i = 0; i < numChildren; i++){
+        display(node.children[i], level);
+      }
+    }
+  }
+
   /*
    * nodeInsert(int value, int pointer)
    *    - -2 if the value already exists in the specified node
@@ -102,7 +122,9 @@ final class Btree {
    *            something else if the parent node has to be restructured
    */
   private int nodeInsert(int value, Node curr) {
+    //if the current node is a leaf node
     if (curr.isLeaf) {
+      //if the value is found in the leaf node
       if (Arrays.asList(curr.values).contains(value)) {
         return -2;
       }
@@ -113,9 +135,11 @@ final class Btree {
       }
       //if there is no space
       else {
-        // create new leaf node
+        // create new leaf node & return pointer to it
         int newNodePtr = createLeaf();
+        //checkout the newly created node based on its pointer
         Node newNode = nodes[newNodePtr];
+        //redistribute values in the current and new node
         redistribute(curr, value, newNode);
         return newNodePtr;
       }
@@ -136,7 +160,7 @@ final class Btree {
         //promote mid value via left bias -> insert child's last value (i.e. mid) into current node //TODO add to readme
         curr.values[curr.size] = child.values[child.size]; //mid invisible at index equal to size
         curr.size++;
-        //insert the new child pointer into the the current node
+        //insert the new child pointer into the current node
         curr.children[curr.size] = newChildPtr;
         return -1;
       }
@@ -158,7 +182,6 @@ final class Btree {
         newNode.children[i] = newChildPtr;
 
         if (curr != nodes[root]){
-          redistribute(curr, midVal, newNode);
           return newNodePtr;
         }
         else {
@@ -216,7 +239,7 @@ final class Btree {
     //redistribute into new node
     for (int i = mid + 1; i < arr.length; i++){
       newNode.values[j] = arr[i];
-      newNode.size += 1;
+      newNode.size++;
       j += 1;
     }
 
@@ -265,7 +288,7 @@ final class Btree {
 //    bt.Insert(13);
 //    bt.Insert(14);
 
-    Btree b = new Btree(4);
+    Btree b = new Btree(3);
     b.Insert(20);
     b.Insert(30);
     b.Insert(10);
@@ -280,9 +303,9 @@ final class Btree {
     b.Insert(102);
     b.Insert(103);
     b.Insert(104);
-    b.Insert(105);
-    b.Insert(106);
-    b.Insert(107);
+//    b.Insert(105);
+//    b.Insert(106);
+//    b.Insert(107);
 //    b.Insert(108);
 //    b.Insert(109);
 //    b.Insert(110);
@@ -290,6 +313,7 @@ final class Btree {
 //    b.Insert(112);
 //    b.Insert(113);
 //    b.Insert(114);
+    b.displayTree();
   }
 
 }
