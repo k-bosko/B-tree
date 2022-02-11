@@ -133,8 +133,7 @@ final class Btree {
       // splitted
       //if there is space inside current node
       else if (curr.size < nodeSize) {
-        // insert the new child's first value (i.e. mid) into the the current node --> promote? //TODO check
-        //left bias -> insert first child's last value (i.e. mid) into current node
+        //promote mid value via left bias -> insert child's last value (i.e. mid) into current node //TODO add to readme
         curr.values[curr.size] = child.values[child.size]; //mid invisible at index equal to size
         curr.size++;
         //insert the new child pointer into the the current node
@@ -149,21 +148,14 @@ final class Btree {
         //distribute values
         int midVal = child.values[child.size];
         redistribute(curr, midVal, newNode);
-        //pop last value -> reduce size of curr
-//        curr.size--;
-        //copy over mid value into new node
-//        newNode.values[0] = child.values[child.size]; //mid value is last value that is not counted in size
-//        newNode.size++;
-        //update child pointerS for new node
+        //update child pointers -> all children after mid go to newNode
         int i;
-        for (i = 0; i < mid; i++){
+        //numChildrenToTransfer is different depending on nodeSize - even or odd //TODO add to readme
+        int numChildrenToTransfer = (nodeSize % 2 == 0)? mid: mid + 1;
+        for (i = 0; i < numChildrenToTransfer; i++){
           newNode.children[i] = curr.children[i + mid + 1];
         }
         newNode.children[i] = newChildPtr;
-        //add curr's last child (size already decremented, but link still there --> +1) to newNode
-//        newNode.children[0] = curr.children[curr.size + 1];
-//        //link newChild with newNode
-//        newNode.children[1] = newChildPtr;
 
         if (curr != nodes[root]){
           redistribute(curr, midVal, newNode);
@@ -271,8 +263,9 @@ final class Btree {
 //    bt.Insert(9);
 //    bt.Insert(6);
 //    bt.Insert(13);
+//    bt.Insert(14);
 
-    Btree b = new Btree(2);
+    Btree b = new Btree(4);
     b.Insert(20);
     b.Insert(30);
     b.Insert(10);
@@ -290,13 +283,13 @@ final class Btree {
     b.Insert(105);
     b.Insert(106);
     b.Insert(107);
-    b.Insert(108);
-    b.Insert(109);
-    b.Insert(110);
-    b.Insert(111);
-    b.Insert(112);
-    b.Insert(113);
-    b.Insert(114);
+//    b.Insert(108);
+//    b.Insert(109);
+//    b.Insert(110);
+//    b.Insert(111);
+//    b.Insert(112);
+//    b.Insert(113);
+//    b.Insert(114);
   }
 
 }
