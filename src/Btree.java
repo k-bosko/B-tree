@@ -115,7 +115,8 @@ final class Btree {
       else {
         // create new leaf node
         int newNodePtr = createLeaf();
-        redistribute(curr, value, newNodePtr);
+        Node newNode = nodes[newNodePtr];
+        redistribute(curr, value, newNode);
         return newNodePtr;
       }
     }
@@ -134,7 +135,7 @@ final class Btree {
       else if (curr.size < nodeSize) {
         // insert the new child's first value (i.e. mid) into the the current node --> promote? //TODO check
         //left bias -> insert first child's last value (i.e. mid) into current node
-        curr.values[curr.size] = child.values[nodeSize - 1];
+        curr.values[curr.size] = child.values[child.size]; //mid invisible at index equal to size
         curr.size++;
         //insert the new child pointer into the the current node
         curr.children[curr.size] = newChildPtr;
@@ -145,20 +146,27 @@ final class Btree {
         //create a new node
         int newNodePtr = createNode();
         Node newNode = nodes[newNodePtr];
-        //pop last child from curr -> reduce size of curr
-        curr.size--;
+        //distribute values
+        int midVal = child.values[child.size];
+        redistribute(curr, midVal, newNode);
+        //pop last value -> reduce size of curr
+//        curr.size--;
         //copy over mid value into new node
-        newNode.values[0] = child.values[child.size]; //mid value is last value that is not counted in size
-        newNode.size++;
-        //distribute values and child pointerS in the current and new node
+//        newNode.values[0] = child.values[child.size]; //mid value is last value that is not counted in size
+//        newNode.size++;
+        //update child pointerS for new node
+        int i;
+        for (i = 0; i < mid; i++){
+          newNode.children[i] = curr.children[i + mid + 1];
+        }
+        newNode.children[i] = newChildPtr;
         //add curr's last child (size already decremented, but link still there --> +1) to newNode
-        newNode.children[0] = curr.children[curr.size + 1];
-
-        //link newChild with newNode
-        newNode.children[1] = newChildPtr;
+//        newNode.children[0] = curr.children[curr.size + 1];
+//        //link newChild with newNode
+//        newNode.children[1] = newChildPtr;
 
         if (curr != nodes[root]){
-          //currNode.redistributeValues(newNode); TODO
+          redistribute(curr, midVal, newNode);
           return newNodePtr;
         }
         else {
@@ -170,7 +178,7 @@ final class Btree {
           newRoot.children[1] = newNodePtr;
           root = newRootPtr;
           //initialize the root node with the values of the current and new node
-          newRoot.values[0] = curr.values[curr.size]; //mid that is fake since size less by 1
+          newRoot.values[0] = curr.values[curr.size]; //mid is invisible at index size
           newRoot.size++;
         }
         return -1;
@@ -195,8 +203,8 @@ final class Btree {
     return curr.children[i];
   }
 
-  private void redistribute(Node curr, int value, int newNodePtr){
-    Node newNode = nodes[newNodePtr];
+  private void redistribute(Node curr, int value, Node newNode){
+
     int[] arr = new int[nodeSize + 1];
     for (int i = 0; i < nodeSize; i++){
       arr[i] = curr.values[i];
@@ -264,7 +272,7 @@ final class Btree {
 //    bt.Insert(6);
 //    bt.Insert(13);
 
-    Btree b = new Btree(3);
+    Btree b = new Btree(2);
     b.Insert(20);
     b.Insert(30);
     b.Insert(10);
@@ -288,6 +296,7 @@ final class Btree {
     b.Insert(111);
     b.Insert(112);
     b.Insert(113);
+    b.Insert(114);
   }
 
 }
