@@ -1,11 +1,13 @@
 /*
  * CS7280 Special Topics in Database Management
  * Project 1: B-tree implementation.
+ * Author: Katerina Bosko
  *
- * You need to code for the following functions in this program
- *   1. Lookup(int value) -> nodeLookup(int value, int node)
- *   2. Insert(int value) -> nodeInsert(int value, int node)
- *   3. Display(int node)
+ * Recursive implementation of B-tree data structure
+ * Supports:
+ *   1. Insert
+ *   2. Lookup
+ *   3. Display
  *
  */
 
@@ -13,7 +15,7 @@ import java.util.Arrays;
 
 final class Btree {
 
-  /* Size of Node. */
+  /* Default size of Node for simple constructor */
   private static final int NODESIZE = 5;
 
   /* Node array, initialized with length = 1. i.e. root node */
@@ -28,10 +30,13 @@ final class Btree {
   /* Number of currently used values. */
   private int cntValues = 0;
 
+  /* Size of Node */
   private final int nodeSize;
 
+  /* middle position in an array of nodeSize, differs if nodeSize is odd or even  */
   private final int mid;
-  /*
+
+  /**
    * B tree Constructor.
    */
   public Btree() {
@@ -42,7 +47,9 @@ final class Btree {
     mid = ((nodeSize + 1) % 2 == 0)? (nodeSize + 1)/2 - 1:  Math.floorDiv(nodeSize + 1, 2);
   }
 
-  //overloaded constructor
+  /**
+   * B tree overloaded constructor to specify node size
+   */
   public Btree(int nodeSize) {
     this.nodeSize = nodeSize;
     root = createNode();
@@ -53,7 +60,7 @@ final class Btree {
 
   /*********** B tree functions for Public ******************/
 
-  /*
+  /**
    * Lookup(int value)
    *   - True if the value was found.
    */
@@ -61,7 +68,7 @@ final class Btree {
     return nodeLookup(value, root);
   }
 
-  /*
+  /**
    * Insert(int value)
    *    - If -1 is returned, the value is inserted and increase cntValues.
    *    - If -2 is returned, the value already exists.
@@ -70,8 +77,7 @@ final class Btree {
     if(nodeInsert(value, nodes[root]) == -1) cntValues++;
   }
 
-
-  /*
+  /**
    * CntValues()
    *    - Returns the number of used values.
    */
@@ -79,9 +85,25 @@ final class Btree {
     return cntValues;
   }
 
+  /**
+   * displayTree()
+   *    - prints all values stored in btree, indented by level for better comprehension
+   */
+  public void displayTree(){
+    displayNode(root, 0);
+  }
+
+  /**
+   *  display(int node) per requirement
+   *  prints all values under specified node pointer, indents for better comprehension
+   */
+  public void display(int nodePtr){
+    displayNode(nodePtr, 0);
+  }
+
   /*********** B-tree functions for Internal  ******************/
 
-  /*
+  /**
    * nodeLookup(int value, int pointer)
    *    - True if the value was found in the specified node.
    */
@@ -92,44 +114,45 @@ final class Btree {
       //return if the value is found in the leaf node (true/false)
       return found(curr, value);
     }
-    //else... if the node is no leaf node:
+    //else the node is no leaf node:
     else {
       //find the child node for the current node
       int childPtr = findChild(curr, value);
+      //start recursion to go down the tree
       return nodeLookup(value, childPtr);
     }
   }
 
-  public void displayTree(){
-    displayNode(root, 0);
-  }
-
-  /* Display per requirement */
-  public void display(int nodePtr){
-    displayNode(nodePtr, 0);
-  }
-
-  public void displayNode(int nodePtr, int level){
-    Node node = nodes[nodePtr];
+  /**
+   * displayNode(int nodePtr, int level)
+   *    traverses recursively btree and prints its values level by level
+   *    prints values with indentation based on level for better comprehension
+   */
+  private void displayNode(int nodePtr, int level){
+    //checkout node based on its pointer
+    Node curr = nodes[nodePtr];
+    //indent based on level
     System.out.print("  ".repeat(level));
-    for (int i = 0; i < node.size; i++) {
-      System.out.print(node.values[i] + " ");
+    //print values in this node
+    for (int i = 0; i < curr.size; i++) {
+      System.out.print(curr.values[i] + " ");
     }
     System.out.println();
-    if (!node.isLeaf){
+    //go down the tree recursively if current node is not leaf node
+    if (!curr.isLeaf){
       level++;
-      int numChildren = node.size + 1;
+      int numChildren = curr.size + 1;
       for (int i = 0; i < numChildren; i++){
-        displayNode(node.children[i], level);
+        displayNode(curr.children[i], level);
       }
     }
   }
 
-  /*
+  /**
    * nodeInsert(int value, int pointer)
    *    - -2 if the value already exists in the specified node
    *    - -1 if the value is inserted into the node or
-   *            something else if the parent node has to be restructured
+   *    integer pointer to newly created child if the parent node has to be restructured
    */
   private int nodeInsert(int value, Node curr) {
     //if the current node is a leaf node
@@ -153,11 +176,13 @@ final class Btree {
         return newLeafPtr;
       }
     }
-    //NOT LEAF
+    //current node is not leaf, i.e. inner node
     else {
-      //find the child node for the current node
+      //find the correct child pointer for the current node
       int childPtr = findChild(curr, value);
+      //checkout child node based on its pointer
       Node child = nodes[childPtr];
+      //insert the value into child
       int newChildPtr = nodeInsert(value, child);
       //no split -> done
       if (newChildPtr == -2 || newChildPtr == -1){
@@ -166,43 +191,52 @@ final class Btree {
       // after split
       //if there is space inside current node
       else if (curr.size < nodeSize) {
-        //promote mid value via left bias -> insert child's last value (i.e. mid) into current node //TODO add to readme
-        curr.values[curr.size] = child.values[child.size]; //mid invisible at index equal to size
+        //mid invisible at index equal to size, i.e. next value after 'visible' values
+        int mid = child.size;
+        //promote mid value via left bias -> copy over child's last value (i.e. mid) into current node //TODO add to readme
+        curr.values[curr.size] = child.values[mid];
         curr.size++;
-        //insert the new child pointer into the current node
+        //link current node with new child
         curr.children[curr.size] = newChildPtr;
         return -1;
       }
-      //no space
+      //no space inside current node
       else {
         //create a new node
         int newNodePtr = createNode();
+        //checkout new node
         Node newNode = nodes[newNodePtr];
-        //distribute values
+        //find new middle value to be promoted
         int midVal = child.values[child.size];
+        //redistribute values between current node and new node
         redistribute(curr, midVal, newNode);
         //update child pointers -> all children after mid go to newNode
-        int i;
         //numChildrenToTransfer is different depending on nodeSize - even or odd //TODO add to readme
         int numChildrenToTransfer = (nodeSize % 2 == 0)? mid: mid + 1;
+        int i;
         for (i = 0; i < numChildrenToTransfer; i++){
           newNode.children[i] = curr.children[i + mid + 1];
         }
+        //link newNode with new child
         newNode.children[i] = newChildPtr;
 
+        //if current node is not root
         if (curr != nodes[root]){
+          //return pointer to new node
           return newNodePtr;
         }
         else {
           //create and set a new root node
           int newRootPtr = createNode();
+          //checkout new root
           Node newRoot = nodes[newRootPtr];
-          //update pointers to children
+          //link new root with old root and new node created in the previous step
           newRoot.children[0] = root;
           newRoot.children[1] = newNodePtr;
           root = newRootPtr;
-          //initialize the root node with the values of the current and new node
-          newRoot.values[0] = curr.values[curr.size]; //mid is invisible at index size
+          //promote the mid value to newRoot
+          int mid = curr.size; //mid is invisible at index size
+          newRoot.values[0] = curr.values[mid];
           newRoot.size++;
         }
         return -1;
@@ -210,33 +244,66 @@ final class Btree {
     }
   }
 
+  /**
+   * found(int value)
+   *   helper function to check if the value is stored in the current node
+   *   - true if found
+   *   - false if not found
+   */
   private boolean found(Node curr, int value){
     // check  if value exists
     for (int i = 0; i < nodeSize; i++) {
       if (curr.values[i] == value) {
-        return true; // exit
+        return true; // exit of found
       }
     }
     return false;
   }
 
+  /**
+   * insertValue(int value)
+   *   helper function to insert the value at correct position
+   *   in array of values that has increasing order
+   */
   private void insertValue(Node curr, int value){
     int i = 0;
+    //find where to insert by moving other values to the right if needed
     for (i = curr.size - 1; i >= 0 && value < curr.values[i]; i--){
       curr.values[i + 1] = curr.values[i];
     }
+    //insert value
     curr.values[i + 1] = value;
     curr.size += 1;
   }
 
+  /**
+   * findChild(int value)
+   *   helper function to find the correct child of the current node
+   *   where value will be processed
+   *   returns pointer to a child
+   */
   private int findChild(Node curr, int value){
     int i = 0;
+    //find the correct index by comparing value to values in the current node
     while (i < curr.size && curr.values[i] < value){
       i += 1;
     }
     return curr.children[i];
   }
 
+  /**
+   * redistribute(int value, Node newNode)
+   *   helper function to redistribute values between current node
+   *   and newly created node based on mid position
+   *   1. the values to be redistributed include the value to be inserted and are sorted
+   *   2. the values are sorted to find the middle value that will be later promoted into parent
+   *   3. values are redistributed based on left bias:
+   *      - all values up to mid value (inclusive) stay in the current node
+   *      - all values after mid value go to new node
+   *   NOTE: mid position for even node size is determined by taking the first value
+   *   to the left from the middle after splitting array in half
+   *
+   */
   private void redistribute(Node curr, int value, Node newNode){
 
     int[] arr = new int[nodeSize + 1];
@@ -261,7 +328,6 @@ final class Btree {
       newNode.size++;
       j += 1;
     }
-
   }
 
   /*********** Functions for accessing node  ******************/
@@ -283,7 +349,7 @@ final class Btree {
     return cntNodes++;
   }
 
-  /*
+  /**
    * checkSize(): Resizes the node array if necessary.
    */
   private void checkSize() {
@@ -295,46 +361,46 @@ final class Btree {
   }
 
   public static void main(String[] args) {
-    Btree bt = new Btree(2);
-    bt.insert(8);
-    bt.insert(5);
-    bt.insert(1);
-    bt.insert(7);
-    bt.insert(3);
-    bt.insert(12);
-    bt.insert(9);
-    bt.insert(6);
-    bt.insert(13);
-    bt.insert(14);
-    bt.displayTree();
+//    Btree bt = new Btree(2);
+//    bt.insert(8);
+//    bt.insert(5);
+//    bt.insert(1);
+//    bt.insert(7);
+//    bt.insert(3);
+//    bt.insert(12);
+//    bt.insert(9);
+//    bt.insert(6);
+//    bt.insert(13);
+//    bt.insert(14);
+//    bt.displayTree();
 //    bt.display(2);
 
-//    Btree b = new Btree(3);
-//    b.insert(20);
-//    b.insert(30);
-//    b.insert(10);
-//    b.insert(40);
-//    b.insert(50);
-//    b.insert(60);
-//    b.insert(70);
-//    b.insert(80);
-//    b.insert(90);
-//    b.insert(100);
-//    b.insert(101);
-//    b.insert(102);
-//    b.insert(103);
-//    b.insert(104);
-//    b.insert(105);
-//    b.insert(106);
-//    b.insert(107);
-//    b.insert(108);
-//    b.insert(109);
-//    b.insert(110);
-//    b.insert(111);
-//    b.insert(112);
-//    b.insert(113);
-//    b.insert(114);
-//    b.displayTree();
+    Btree b = new Btree(3);
+    b.insert(20);
+    b.insert(30);
+    b.insert(10);
+    b.insert(40);
+    b.insert(50);
+    b.insert(60);
+    b.insert(70);
+    b.insert(80);
+    b.insert(90);
+    b.insert(100);
+    b.insert(101);
+    b.insert(102);
+    b.insert(103);
+    b.insert(104);
+    b.insert(105);
+    b.insert(106);
+    b.insert(107);
+    b.insert(108);
+    b.insert(109);
+    b.insert(110);
+    b.insert(111);
+    b.insert(112);
+    b.insert(113);
+    b.insert(114);
+    b.displayTree();
   }
 
 }
