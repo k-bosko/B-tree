@@ -96,10 +96,15 @@ final class Btree {
   }
 
   public void displayTree(){
-    display(root, 0);
+    displayNode(root, 0);
   }
 
-  public void display(int nodePtr, int level){
+  /* Display per requirement */
+  public void display(int nodePtr){
+    displayNode(nodePtr, 0);
+  }
+
+  public void displayNode(int nodePtr, int level){
     Node node = nodes[nodePtr];
     System.out.print("  ".repeat(level));
     for (int i = 0; i < node.size; i++) {
@@ -110,7 +115,7 @@ final class Btree {
       level++;
       int numChildren = node.size + 1;
       for (int i = 0; i < numChildren; i++){
-        display(node.children[i], level);
+        displayNode(node.children[i], level);
       }
     }
   }
@@ -276,33 +281,35 @@ final class Btree {
   }
 
   public static void main(String[] args) {
-//    Btree bt = new Btree(2);
-//    bt.Insert(8);
-//    bt.Insert(5);
-//    bt.Insert(1);
-//    bt.Insert(7);
-//    bt.Insert(3);
-//    bt.Insert(12);
-//    bt.Insert(9);
-//    bt.Insert(6);
-//    bt.Insert(13);
-//    bt.Insert(14);
+    Btree bt = new Btree(2);
+    bt.Insert(8);
+    bt.Insert(5);
+    bt.Insert(1);
+    bt.Insert(7);
+    bt.Insert(3);
+    bt.Insert(12);
+    bt.Insert(9);
+    bt.Insert(6);
+    bt.Insert(13);
+    bt.Insert(14);
+    bt.displayTree();
+//    bt.display(2);
 
     Btree b = new Btree(3);
-    b.Insert(20);
-    b.Insert(30);
-    b.Insert(10);
-    b.Insert(40);
-    b.Insert(50);
-    b.Insert(60);
-    b.Insert(70);
-    b.Insert(80);
-    b.Insert(90);
-    b.Insert(100);
-    b.Insert(101);
-    b.Insert(102);
-    b.Insert(103);
-    b.Insert(104);
+//    b.Insert(20);
+//    b.Insert(30);
+//    b.Insert(10);
+//    b.Insert(40);
+//    b.Insert(50);
+//    b.Insert(60);
+//    b.Insert(70);
+//    b.Insert(80);
+//    b.Insert(90);
+//    b.Insert(100);
+//    b.Insert(101);
+//    b.Insert(102);
+//    b.Insert(103);
+//    b.Insert(104);
 //    b.Insert(105);
 //    b.Insert(106);
 //    b.Insert(107);
