@@ -20,13 +20,13 @@ final class Btree {
   private Node[] nodes = new Node[1];
 
   /* Number of currently used nodes. */
-  private int cntNodes;
+  private int cntNodes = 0;
 
   /* Pointer to the root node. */
   private int root;
 
   /* Number of currently used values. */
-  private int cntValues;
+  private int cntValues = 0;
 
   private int nodeSize;
 
@@ -67,7 +67,7 @@ final class Btree {
    *    - If -2 is returned, the value already exists.
    */
   public void Insert(int value) {
-    if(nodeInsert(value, root) == -1) cntValues++;
+    if(nodeInsert(value, nodes[root]) == -1) cntValues++;
   }
 
 
@@ -101,8 +101,7 @@ final class Btree {
    *    - -1 if the value is inserted into the node or
    *            something else if the parent node has to be restructured
    */
-  private int nodeInsert(int value, int pointer) {
-    Node curr = nodes[pointer];
+  private int nodeInsert(int value, Node curr) {
     if (curr.isLeaf) {
       if (Arrays.asList(curr.values).contains(value)) {
         return -2;
@@ -114,44 +113,65 @@ final class Btree {
       }
       //if there is no space
       else {
-        // create new node
+        // create new leaf node
         int newNodePtr = createLeaf();
-        redistribute(curr, value, newNodePtr); //TODO
+        redistribute(curr, value, newNodePtr);
         return newNodePtr;
       }
     }
     //NOT LEAF
     else {
       //find the child node for the current node
-      int child = findChild(root, value);
-      int newChild = nodeInsert(value, child);
+      int childPtr = findChild(curr, value);
+      Node child = nodes[childPtr];
+      int newChildPtr = nodeInsert(value, child);
       //no split -> done
-      if (newChild == -2 || newChild == -1){
-        return newChild;
+      if (newChildPtr == -2 || newChildPtr == -1){
+        return newChildPtr;
       }
       // splitted
       //if there is space inside current node
       else if (curr.size < nodeSize) {
-        //insert the new child pointer into the the current node
-        curr.children[child] = newChild;
         // insert the new child's first value (i.e. mid) into the the current node --> promote? //TODO check
         //left bias -> insert first child's last value (i.e. mid) into current node
-        curr.values[curr.size] = nodes[child].values[nodeSize - 1];
+        curr.values[curr.size] = child.values[nodeSize - 1];
         curr.size++;
+        //insert the new child pointer into the the current node
+        curr.children[curr.size] = newChildPtr;
         return -1;
       }
       //no space
       else {
         //create a new node
-        int newNodePtr = createNode(); //TODO or leaf?
+        int newNodePtr = createNode();
+        Node newNode = nodes[newNodePtr];
+        //pop last child from curr -> reduce size of curr
+        curr.size--;
+        //copy over mid value into new node
+        newNode.values[0] = child.values[child.size]; //mid value is last value that is not counted in size
+        newNode.size++;
         //distribute values and child pointerS in the current and new node
-        //redistribute();
+        //add curr's last child (size already decremented, but link still there --> +1) to newNode
+        newNode.children[0] = curr.children[curr.size + 1];
+
+        //link newChild with newNode
+        newNode.children[1] = newChildPtr;
+
         if (curr != nodes[root]){
+          //currNode.redistributeValues(newNode); TODO
           return newNodePtr;
         }
         else {
           //create and set a new root node
-          //initialize the root node with the pointers and values of the current and new node
+          int newRootPtr = createNode();
+          Node newRoot = nodes[newRootPtr];
+          //update pointers to children
+          newRoot.children[0] = root;
+          newRoot.children[1] = newNodePtr;
+          root = newRootPtr;
+          //initialize the root node with the values of the current and new node
+          newRoot.values[0] = curr.values[curr.size]; //mid that is fake since size less by 1
+          newRoot.size++;
         }
         return -1;
       }
@@ -167,12 +187,12 @@ final class Btree {
     curr.size += 1;
   }
 
-  private int findChild(int currPtr, int value){
+  private int findChild(Node curr, int value){
     int i = 0;
-    while (i < nodes[currPtr].size && nodes[currPtr].values[i] < value){
+    while (i < curr.size && curr.values[i] < value){
       i += 1;
     }
-    return nodes[currPtr].children[i];
+    return curr.children[i];
   }
 
   private void redistribute(Node curr, int value, int newNodePtr){
@@ -233,17 +253,41 @@ final class Btree {
   }
 
   public static void main(String[] args) {
-    Btree bt = new Btree(2);
-    bt.Insert(8);
-    bt.Insert(5);
-    bt.Insert(1);
-    bt.Insert(7);
-    bt.Insert(3);
-    bt.Insert(12);
-    bt.Insert(9);
-    bt.Insert(6);
-    bt.Insert(13);
+//    Btree bt = new Btree(2);
+//    bt.Insert(8);
+//    bt.Insert(5);
+//    bt.Insert(1);
+//    bt.Insert(7);
+//    bt.Insert(3);
+//    bt.Insert(12);
+//    bt.Insert(9);
+//    bt.Insert(6);
+//    bt.Insert(13);
 
+    Btree b = new Btree(3);
+    b.Insert(20);
+    b.Insert(30);
+    b.Insert(10);
+    b.Insert(40);
+    b.Insert(50);
+    b.Insert(60);
+    b.Insert(70);
+    b.Insert(80);
+    b.Insert(90);
+    b.Insert(100);
+    b.Insert(101);
+    b.Insert(102);
+    b.Insert(103);
+    b.Insert(104);
+    b.Insert(105);
+    b.Insert(106);
+    b.Insert(107);
+    b.Insert(108);
+    b.Insert(109);
+    b.Insert(110);
+    b.Insert(111);
+    b.Insert(112);
+    b.Insert(113);
   }
 
 }

@@ -17,7 +17,7 @@ final class Node {
    */
   int size;
 
-  //flag for a node if it is a leaf
+  /* flag for a node if it is a leaf */
   boolean isLeaf;
 
 }
