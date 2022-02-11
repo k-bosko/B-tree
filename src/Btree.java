@@ -90,7 +90,7 @@ final class Btree {
     //if the current node is a leaf node:
     if (curr.isLeaf){
       //return if the value is found in the leaf node (true/false)
-      return Arrays.asList(curr.values).contains(value);
+      return found(curr, value);
     }
     //else... if the node is no leaf node:
     else {
@@ -134,26 +134,23 @@ final class Btree {
   private int nodeInsert(int value, Node curr) {
     //if the current node is a leaf node
     if (curr.isLeaf) {
-      // check  if value exists
-      for (int i = 0; i < nodeSize; i++) {
-        if (curr.values[i] == value) {
-          return -2; // exit
-        }
+      if (found(curr, value)){
+        return -2;
       }
       //if there is space -> insert value into leaf node in sorted order
       if (curr.size < nodeSize) {
         insertValue(curr, value);
         return -1;
       }
-      //if there is no space
+      //there is no space
       else {
         // create new leaf node & return pointer to it
-        int newNodePtr = createLeaf();
+        int newLeafPtr = createLeaf();
         //checkout the newly created node based on its pointer
-        Node newNode = nodes[newNodePtr];
+        Node newLeaf = nodes[newLeafPtr];
         //redistribute values in the current and new node
-        redistribute(curr, value, newNode);
-        return newNodePtr;
+        redistribute(curr, value, newLeaf);
+        return newLeafPtr;
       }
     }
     //NOT LEAF
@@ -211,6 +208,16 @@ final class Btree {
         return -1;
       }
     }
+  }
+
+  private boolean found(Node curr, int value){
+    // check  if value exists
+    for (int i = 0; i < nodeSize; i++) {
+      if (curr.values[i] == value) {
+        return true; // exit
+      }
+    }
+    return false;
   }
 
   private void insertValue(Node curr, int value){
