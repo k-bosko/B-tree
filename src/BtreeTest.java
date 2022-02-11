@@ -27,22 +27,22 @@ public final class BtreeTest {
     Btree tree = new Btree();
 
     System.out.println("Insert Values...");
-    for(int v : values) tree.Insert(v);
+    for(int v : values) tree.insert(v);
     int size = tree.getCntValues();
     System.out.println("Stored Nodes: " + size + "\n");
 
     System.out.println("Finding Values...");
     int found = 0;
-    for(int v : values) if(tree.Lookup(v)) found++;
+    for(int v : values) if(tree.lookup(v)) found++;
     System.out.println(found + " found, " + cntValues + " expected.\n");
 
     System.out.println("Reinsert Values... ");
-    for(int v : values) tree.Insert(v);
+    for(int v : values) tree.insert(v);
     System.out.println(tree.getCntValues() + " stored, " + size + " expected.\n");
 
     System.out.println("Finding Values...");
     found = 0;
-    for(int v : values) if(tree.Lookup(v)) found++;
+    for(int v : values) if(tree.lookup(v)) found++;
     System.out.println(found + " found, " + cntValues + " expected.\n");
 
 

@@ -28,9 +28,9 @@ final class Btree {
   /* Number of currently used values. */
   private int cntValues = 0;
 
-  private int nodeSize;
+  private final int nodeSize;
 
-  private int mid;
+  private final int mid;
   /*
    * B tree Constructor.
    */
@@ -57,7 +57,7 @@ final class Btree {
    * Lookup(int value)
    *   - True if the value was found.
    */
-  public boolean Lookup(int value) {
+  public boolean lookup(int value) {
     return nodeLookup(value, root);
   }
 
@@ -66,7 +66,7 @@ final class Btree {
    *    - If -1 is returned, the value is inserted and increase cntValues.
    *    - If -2 is returned, the value already exists.
    */
-  public void Insert(int value) {
+  public void insert(int value) {
     if(nodeInsert(value, nodes[root]) == -1) cntValues++;
   }
 
@@ -84,15 +84,20 @@ final class Btree {
   /*
    * nodeLookup(int value, int pointer)
    *    - True if the value was found in the specified node.
-   *
    */
   private boolean nodeLookup(int value, int pointer) {
-    //
-    //
-    // To be coded .................
-    //
-    //
-    return false; //TODO
+    Node curr = nodes[pointer];
+    //if the current node is a leaf node:
+    if (curr.isLeaf){
+      //return if the value is found in the leaf node (true/false)
+      return Arrays.asList(curr.values).contains(value);
+    }
+    //else... if the node is no leaf node:
+    else {
+      //find the child node for the current node
+      int childPtr = findChild(curr, value);
+      return nodeLookup(value, childPtr);
+    }
   }
 
   public void displayTree(){
@@ -129,12 +134,14 @@ final class Btree {
   private int nodeInsert(int value, Node curr) {
     //if the current node is a leaf node
     if (curr.isLeaf) {
-      //if the value is found in the leaf node
-      if (Arrays.asList(curr.values).contains(value)) {
-        return -2;
+      // check  if value exists
+      for (int i = 0; i < nodeSize; i++) {
+        if (curr.values[i] == value) {
+          return -2; // exit
+        }
       }
       //if there is space -> insert value into leaf node in sorted order
-      else if (curr.size < nodeSize) {
+      if (curr.size < nodeSize) {
         insertValue(curr, value);
         return -1;
       }
@@ -159,7 +166,7 @@ final class Btree {
       if (newChildPtr == -2 || newChildPtr == -1){
         return newChildPtr;
       }
-      // splitted
+      // after split
       //if there is space inside current node
       else if (curr.size < nodeSize) {
         //promote mid value via left bias -> insert child's last value (i.e. mid) into current node //TODO add to readme
@@ -282,45 +289,45 @@ final class Btree {
 
   public static void main(String[] args) {
     Btree bt = new Btree(2);
-    bt.Insert(8);
-    bt.Insert(5);
-    bt.Insert(1);
-    bt.Insert(7);
-    bt.Insert(3);
-    bt.Insert(12);
-    bt.Insert(9);
-    bt.Insert(6);
-    bt.Insert(13);
-    bt.Insert(14);
+    bt.insert(8);
+    bt.insert(5);
+    bt.insert(1);
+    bt.insert(7);
+    bt.insert(3);
+    bt.insert(12);
+    bt.insert(9);
+    bt.insert(6);
+    bt.insert(13);
+    bt.insert(14);
     bt.displayTree();
 //    bt.display(2);
 
-    Btree b = new Btree(3);
-//    b.Insert(20);
-//    b.Insert(30);
-//    b.Insert(10);
-//    b.Insert(40);
-//    b.Insert(50);
-//    b.Insert(60);
-//    b.Insert(70);
-//    b.Insert(80);
-//    b.Insert(90);
-//    b.Insert(100);
-//    b.Insert(101);
-//    b.Insert(102);
-//    b.Insert(103);
-//    b.Insert(104);
-//    b.Insert(105);
-//    b.Insert(106);
-//    b.Insert(107);
-//    b.Insert(108);
-//    b.Insert(109);
-//    b.Insert(110);
-//    b.Insert(111);
-//    b.Insert(112);
-//    b.Insert(113);
-//    b.Insert(114);
-    b.displayTree();
+//    Btree b = new Btree(3);
+//    b.insert(20);
+//    b.insert(30);
+//    b.insert(10);
+//    b.insert(40);
+//    b.insert(50);
+//    b.insert(60);
+//    b.insert(70);
+//    b.insert(80);
+//    b.insert(90);
+//    b.insert(100);
+//    b.insert(101);
+//    b.insert(102);
+//    b.insert(103);
+//    b.insert(104);
+//    b.insert(105);
+//    b.insert(106);
+//    b.insert(107);
+//    b.insert(108);
+//    b.insert(109);
+//    b.insert(110);
+//    b.insert(111);
+//    b.insert(112);
+//    b.insert(113);
+//    b.insert(114);
+//    b.displayTree();
   }
 
 }
