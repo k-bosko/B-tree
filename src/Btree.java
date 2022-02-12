@@ -112,6 +112,7 @@ final class Btree {
     System.out.println("********************");
     System.out.println("\nDisplaying the B-tree");
     System.out.println("node size: " + nodeSize);
+    System.out.println("num values: " + cntValues);
     System.out.println("********************");
     displayNode(root, 0);
     System.out.println();
@@ -193,7 +194,7 @@ final class Btree {
     if (curr.isLeaf) {
       //if there is space -> insert value into leaf node in sorted order
       if (curr.size < nodeSize) {
-        insertValue(curr, value);
+        insert(curr, value);
         return -1;
       }
       //there is no space
@@ -225,14 +226,13 @@ final class Btree {
         //mid invisible at index equal to size, i.e. next value after 'visible' values
         int mid = child.size;
         int midValue = child.values[mid];
-        //promote mid value via left bias -> copy over child's last value (i.e. mid) into current node
-        curr.values[curr.size] = midValue;
-        curr.size++;
-        //link current node with new child
-        curr.children[curr.size] = newChildPtr;
-        //promoted middle value must be placed at correct position (currently added at the end)
-        // -> sort values and children
-        sortValuesAndChildren(curr, midValue);
+        // insert midValue at correct position in current node
+        // because current node is not leaf -> insert will sort children as well
+        // insert returns position at which midValue was inserted
+        // needed in next step to insert newChildPtr at correct position among children
+        int insertPos = insert(curr, midValue);
+        // link current node with new child
+        curr.children[insertPos + 1] = newChildPtr;
         return -1;
       }
       //no space inside current node
@@ -288,19 +288,23 @@ final class Btree {
   }
 
   /**
-   * insertValue(int value)
+   * insert(int value)
    *   helper function to insert the value at correct position
    *   in array of values that has increasing order
+   *   TODO add desc for child pointers
    */
-  private void insertValue(Node curr, int value){
+  private int insert(Node curr, int value){
     int i = 0;
-    //find where to insert by moving other values to the right if needed
-    for (i = curr.size - 1; i >= 0 && value < curr.values[i]; i--){
-      curr.values[i + 1] = curr.values[i];
+    //find where to insert by moving other values
+    for (i = curr.size; i > 0 && value < curr.values[i - 1]; i--){
+      curr.values[i] = curr.values[i - 1];
+      curr.children[i + 1] = curr.children[i];
     }
-    //insert value
-    curr.values[i + 1] = value;
-    curr.size += 1;
+    //insert key
+    curr.children[i + 1] = curr.children[i];
+    curr.values[i] = value;
+    curr.size++;
+    return i;
   }
 
   /**
@@ -388,7 +392,6 @@ final class Btree {
     for (int i = 0; i < arr.length; i++){
       if (i == newChildPos){
         arr[i] = newChildPtr;
-        //i++;
       }
       else {
         arr[i] = curr.children[j];
@@ -466,7 +469,7 @@ final class Btree {
 
   public static void main(String[] args) {
 
-    Btree b = new Btree(3);
+    Btree b = new Btree(5);
     int numValues = 30;
     int[] randomNumArr = new int[numValues];
     System.out.println("Inserting: ");
@@ -496,6 +499,40 @@ final class Btree {
     }
     b.displayTree();
 
+//    Btree bt = new Btree(2);
+//    bt.insert(8);
+//    bt.insert(5);
+//    bt.insert(1);
+//    bt.insert(7);
+//    bt.insert(3);
+//    bt.insert(12);
+//    bt.insert(9);
+//    bt.insert(6);
+//    bt.insert(13);
+//    bt.displayTree();
+
+//    Btree b = new Btree(3);
+//    b.insert(20);
+//    b.insert(30);
+//    b.insert(10);
+//    b.insert(40);
+//    b.insert(50);
+//    b.insert(60);
+//    b.insert(70);
+//    b.insert(80);
+//    b.insert(90);
+//    b.insert(100);
+//    b.insert(101);
+//    b.insert(102);
+//    b.insert(103);
+//    b.insert(104);
+//    b.insert(105);
+//    b.insert(106);
+//    b.insert(107);
+//    b.insert(108);
+//    b.insert(109);
+//    b.insert(110);
+//    b.displayTree();
   }
 }
 
