@@ -12,6 +12,9 @@
  * The implementation supports both odd and even number of node size,
  * i.e. maximum number of values that are allowed per node.
  *
+ * Limitations: inserted value cannot be 0 because the data structure used is simple array
+ * that is initialized implicitly with 0s.
+ *
  * The implementation relies on left biasing after split.
  * This means that during redistribution between the current node and new node
  *  all values before mid (including middle value) go to current node,
@@ -24,7 +27,10 @@
    one would need to implement more steps -> pop the middle value from the new node when it's full.
  */
 
+
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 final class Btree {
 
@@ -103,7 +109,12 @@ final class Btree {
    *    - prints all values stored in btree, indented by level for better comprehension
    */
   public void displayTree(){
+    System.out.println("********************");
+    System.out.println("\nDisplaying the B-tree");
+    System.out.println("node size: " + nodeSize);
+    System.out.println("********************");
     displayNode(root, 0);
+    System.out.println();
   }
 
   /**
@@ -129,10 +140,17 @@ final class Btree {
     }
     //else the node is no leaf node:
     else {
-      //find the child node for the current node
-      int childPtr = findChild(curr, value);
-      //start recursion to go down the tree
-      return nodeLookup(value, childPtr);
+      //check current node
+      if (found(curr, value)){
+        return true;
+      }
+      //go down the tree
+      else {
+        //find the child node for the current node
+        int childPtr = findChild(curr, value);
+        //start recursion to go down the tree
+        return nodeLookup(value, childPtr);
+      }
     }
   }
 
@@ -168,11 +186,11 @@ final class Btree {
    *    integer pointer to newly created child if the parent node has to be restructured
    */
   private int nodeInsert(int value, Node curr) {
+    if (found(curr, value)){
+      return -2;
+    }
     //if the current node is a leaf node
     if (curr.isLeaf) {
-      if (found(curr, value)){
-        return -2;
-      }
       //if there is space -> insert value into leaf node in sorted order
       if (curr.size < nodeSize) {
         insertValue(curr, value);
@@ -185,7 +203,7 @@ final class Btree {
         //checkout the newly created node based on its pointer
         Node newLeaf = nodes[newLeafPtr];
         //redistribute values in the current and new node
-        redistribute(curr, value, newLeaf);
+        redistributeValues(curr, value, newLeaf);
         return newLeafPtr;
       }
     }
@@ -206,11 +224,15 @@ final class Btree {
       else if (curr.size < nodeSize) {
         //mid invisible at index equal to size, i.e. next value after 'visible' values
         int mid = child.size;
+        int midValue = child.values[mid];
         //promote mid value via left bias -> copy over child's last value (i.e. mid) into current node
-        curr.values[curr.size] = child.values[mid];
+        curr.values[curr.size] = midValue;
         curr.size++;
         //link current node with new child
         curr.children[curr.size] = newChildPtr;
+        //promoted middle value must be placed at correct position (currently added at the end)
+        // -> sort values and children
+        sortValuesAndChildren(curr, midValue);
         return -1;
       }
       //no space inside current node
@@ -221,17 +243,9 @@ final class Btree {
         Node newNode = nodes[newNodePtr];
         //find new middle value to be promoted
         int midVal = child.values[child.size];
-        //redistribute values between current node and new node
-        redistribute(curr, midVal, newNode);
-        //update child pointers -> all children after mid go to newNode
-        //numChildrenToTransfer is different depending on nodeSize - even or odd //TODO add to readme
-        int numChildrenToTransfer = (nodeSize % 2 == 0)? mid: mid + 1;
-        int i;
-        for (i = 0; i < numChildrenToTransfer; i++){
-          newNode.children[i] = curr.children[i + mid + 1];
-        }
-        //link newNode with new child
-        newNode.children[i] = newChildPtr;
+        //redistribute values between current node and new node & return position at which value was inserted
+        int insertPos = redistributeValues(curr, midVal, newNode);
+        redistributeChildren(curr, newChildPtr, newNode, insertPos);
 
         //if current node is not root
         if (curr != nodes[root]){
@@ -317,21 +331,38 @@ final class Btree {
    *   to the left from the middle after splitting array in half
    *
    */
-  private void redistribute(Node curr, int value, Node newNode){
-    //copy over all values in the current node to temporary array
+
+  private int redistributeValues(Node curr, int value, Node newNode){
+    //create temporary array that will hold all values from current node and value to be added
     int[] arr = new int[nodeSize + 1];
-    for (int i = 0; i < nodeSize; i++){
-      arr[i] = curr.values[i];
+
+    //copy over all values in the current node to temporary array
+    int insertPos = 0;
+    int i = 0;
+    for (i = 0; i < curr.size; i++){
+      if (curr.values[i] < value){
+        arr[i] = curr.values[i];
+      }
+      else {
+        arr[i] = value;
+        insertPos = i;
+        break;
+      }
     }
-    //add value to be inserted into temporary array
-    arr[nodeSize] = value;
-    //sort the array
-    arr = Arrays.stream(arr).sorted().toArray();
+    if (i < curr.size){
+      for (int j = i; j < curr.size; j++){
+        arr[j + 1] = curr.values[j];
+      }
+    }
+    else {
+      arr[i] = value;
+      insertPos = i;
+    }
 
     //redistribute into current node -> all values up to and including mid value
     int newSize = 0;
-    for (int i = 0; i < mid + 1; i++){
-      curr.values[i] = arr[i];
+    for (int k = 0; k < mid + 1; k++){
+      curr.values[k] = arr[k];
       newSize++;
     }
     // don't overwrite no longer needed values, instead control with size
@@ -340,10 +371,56 @@ final class Btree {
 
     int j = 0;
     //redistribute into new node -> all values after mid
-    for (int i = mid + 1; i < arr.length; i++){
-      newNode.values[j] = arr[i];
+    for (int m = mid + 1; m < arr.length; m++){
+      newNode.values[j] = arr[m];
       newNode.size++;
-      j += 1;
+      j++;
+    }
+    return insertPos;
+  }
+
+  private void redistributeChildren(Node curr, int newChildPtr, Node newNode, int insertPos){
+    int[] arr = new int[nodeSize + 2];
+    int newChildPos = insertPos + 1;
+    int midForChildren = mid + 1;
+    //copy over all children of curr and newChildPtr (at correct position) into temporary array
+    int j = 0;
+    for (int i = 0; i < arr.length; i++){
+      if (i == newChildPos){
+        arr[i] = newChildPtr;
+        //i++;
+      }
+      else {
+        arr[i] = curr.children[j];
+        j++;
+      }
+    }
+    int numChildrenToTransfer = arr.length - midForChildren;
+
+    //redistribute children into new node & reset children for current node
+    for (int k = 0; k < numChildrenToTransfer; k++){
+      newNode.children[k] = arr[k + midForChildren];
+      curr.children[k + midForChildren - 1] = 0;
+    }
+    //redistribute children into current node
+    for (int m = 0; m < midForChildren; m++){
+      curr.children[m] = arr[m];
+    }
+  }
+
+  private void sortValuesAndChildren(Node curr, int value){
+    //if midValue is less than the last but one value in current node -> sort
+    if (curr.size > 1 && value < curr.values[curr.size - 2]){
+      int i;
+      int lastChild = curr.children[curr.size];
+      //find where to insert by moving other values
+      for (i = curr.size - 2; i >= 0 && value < curr.values[i]; i--){
+        curr.values[i + 1] = curr.values[i];
+        curr.children[i + 2] = curr.children[i + 1];
+      }
+      //insert key
+      curr.children[i + 2] = lastChild;
+      curr.values[i + 1] = value;
     }
   }
 
@@ -388,48 +465,38 @@ final class Btree {
   }
 
   public static void main(String[] args) {
-//    Btree bt = new Btree(2);
-//    bt.insert(8);
-//    bt.insert(5);
-//    bt.insert(1);
-//    bt.insert(7);
-//    bt.insert(3);
-//    bt.insert(12);
-//    bt.insert(9);
-//    bt.insert(6);
-//    bt.insert(13);
-//    bt.insert(14);
-//    bt.displayTree();
-//    bt.display(2);
 
     Btree b = new Btree(3);
-    b.insert(20);
-    b.insert(30);
-    b.insert(10);
-    b.insert(40);
-    b.insert(50);
-    b.insert(60);
-    b.insert(70);
-    b.insert(80);
-    b.insert(90);
-    b.insert(100);
-    b.insert(101);
-    b.insert(102);
-    b.insert(103);
-    b.insert(104);
-    b.insert(105);
-    b.insert(106);
-    b.insert(107);
-    b.insert(108);
-    b.insert(109);
-    b.insert(110);
-    b.insert(111);
-    b.insert(112);
-    b.insert(113);
-    b.insert(114);
-    b.displayTree();
-  }
+    int numValues = 30;
+    int[] randomNumArr = new int[numValues];
+    System.out.println("Inserting: ");
+    for (int i = 0; i < numValues; i++) {
+      //generate random number in range 0 to 100
+      int randomNum = 1 + (int) (Math.random() * ((100 - 1) + 1));
+      randomNumArr[i] = randomNum;
+      System.out.print(randomNum + ", ");
+      b.insert(randomNum);
+    }
 
+    int[] nonRepeatingArr = Arrays.stream(randomNumArr).distinct().toArray();
+    System.out.println(
+        "\n\ntried to insert (potentially with duplicates): " + numValues + " values");
+    System.out.println("must be inserted: " + nonRepeatingArr.length + " values");
+    System.out.println("de facto inserted: " + b.getCntValues() + " values");
+
+    if (numValues != b.getCntValues()) {
+      List<Integer> randomNumList = Arrays.stream(randomNumArr).boxed()
+          .collect(Collectors.toList());
+
+      System.out.println("\nInserted without duplicates:");
+      randomNumList.stream()
+          .distinct()
+          .forEach(e -> System.out.print(e + " "));
+      System.out.println();
+    }
+    b.displayTree();
+
+  }
 }
 
 
